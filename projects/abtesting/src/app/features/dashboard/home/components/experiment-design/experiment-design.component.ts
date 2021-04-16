@@ -49,6 +49,8 @@ export class ExperimentDesignComponent implements OnInit, OnChanges, OnDestroy {
   partitionErrorMessages = [];
   partitionErrorMessagesSub: Subscription;
 
+  previousAssignmentWeightValues =  [];
+
   conditionDisplayedColumns = [ 'conditionNumber', 'conditionCode', 'assignmentWeight', 'description', 'removeCondition'];
   partitionDisplayedColumns = ['partitionNumber', 'expPoint', 'expId', 'removePartition'];
   constructor(
@@ -244,23 +246,21 @@ export class ExperimentDesignComponent implements OnInit, OnChanges, OnDestroy {
     return partition;
   }
 
-  prevValue =  [];
   applyEqualWeight(event){
-    console.log(event.checked);
     const conditions = this.experimentDesignForm.get('conditions') as FormArray;
     
     if(event.checked){ 
       const len = conditions.controls.length;
       conditions.controls.forEach( control => {
-        this.prevValue.push(control.get('assignmentWeight').value);
+        this.previousAssignmentWeightValues.push(control.get('assignmentWeight').value);
         control.get('assignmentWeight').setValue((100.0/len).toFixed(2));
       });
     }
     else {
         conditions.controls.forEach( (control, index) => {
-        control.get('assignmentWeight').setValue(this.prevValue[index]);
+        control.get('assignmentWeight').setValue(this.previousAssignmentWeightValues[index]);
         }); 
-        this.prevValue =  [];
+        this.previousAssignmentWeightValues =  [];
     }
   }
 
