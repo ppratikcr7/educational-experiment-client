@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormArray, AbstractControl } from '@angular/forms';
 import { BehaviorSubject, Subscription } from 'rxjs';
-import { NewExperimentDialogEvents, NewExperimentDialogData, NewExperimentPaths, ExperimentVM, ExperimentCondition } from '../../../../../core/experiments/store/experiments.model';
+import { NewExperimentDialogEvents, NewExperimentDialogData, NewExperimentPaths, ExperimentVM, ExperimentCondition, ExperimentPartition } from '../../../../../core/experiments/store/experiments.model';
 import { ExperimentFormValidators } from '../../validators/experiment-form.validators';
 import { ExperimentService } from '../../../../../core/experiments/experiments.service';
 import { TranslateService } from '@ngx-translate/core';
@@ -43,14 +43,16 @@ export class ExperimentDesignComponent implements OnInit, OnChanges, OnDestroy {
 
   // Condition Error
   conditionCodeError: string;
-
+  
   // Partition Errors
   partitionPointErrors = [];
   partitionErrorMessages = [];
   partitionErrorMessagesSub: Subscription;
+  partitionCountError: string;
 
   conditionDisplayedColumns = [ 'conditionNumber', 'conditionCode', 'assignmentWeight', 'description', 'removeCondition'];
   partitionDisplayedColumns = ['partitionNumber', 'expPoint', 'expId', 'removePartition'];
+
   constructor(
     private _formBuilder: FormBuilder,
     private experimentService: ExperimentService,
@@ -87,7 +89,7 @@ export class ExperimentDesignComponent implements OnInit, OnChanges, OnDestroy {
     });
     this.experimentDesignForm = this._formBuilder.group(
       {
-        conditions: this._formBuilder.array([this.addConditions(), this.addConditions()]),
+        conditions: this._formBuilder.array([this.addConditions()]),
         partitions: this._formBuilder.array([this.addPartitions()])
       }, { validators: ExperimentFormValidators.validateExperimentDesignForm });
 
@@ -95,7 +97,7 @@ export class ExperimentDesignComponent implements OnInit, OnChanges, OnDestroy {
     if (this.experimentInfo) {
       // Remove previously added group of conditions and partitions
       this.condition.removeAt(0);
-      this.condition.removeAt(0);
+      //this.condition.removeAt(0);
       this.partition.removeAt(0);
       this.experimentInfo.conditions.forEach(condition => {
         this.condition.push(this.addConditions(condition.conditionCode, condition.assignmentWeight, condition.description));
@@ -198,13 +200,27 @@ export class ExperimentDesignComponent implements OnInit, OnChanges, OnDestroy {
   validateConditionCodes(conditions: ExperimentCondition[]) {
     const conditionCodes = conditions.map(condition => condition.conditionCode);
     if (conditionCodes.length !== new Set(conditionCodes).size) {
-      this.conditionCodeError = 'Condition should be unique'
-    } 
-    else if (conditions.length !== 2){
-      this.conditionCodeError = 'Please have atleast 2 conditions to move forward'
+      this.conditionCodeError = this.translate.instant('home.new-experiment.design.condition-unique-validation.text')
     }
     else {
       this.conditionCodeError = null;
+    }
+  }
+
+  validatePartitionCount(partitions: ExperimentPartition[]) {
+    const partitionExpPoints = partitions.map(partition => partition.expPoint);
+    if (partitionExpPoints.length <= 1) {
+      if(partitionExpPoints.length == 0) {
+        this.partitionCountError = this.translate.instant('home.new-experiment.design.partition-count-new-exp-error.text')
+      }
+      else {
+        if(partitionExpPoints[0] ===  null) {
+          this.partitionCountError = this.translate.instant('home.new-experiment.design.partition-count-new-exp-error.text')
+        }
+        else {
+          this.partitionCountError = null;
+        }
+      }
     }
   }
 
@@ -216,7 +232,8 @@ export class ExperimentDesignComponent implements OnInit, OnChanges, OnDestroy {
       case NewExperimentDialogEvents.SEND_FORM_DATA:
       case NewExperimentDialogEvents.SAVE_DATA:
         this.validateConditionCodes(this.experimentDesignForm.get('conditions').value);
-        if (!this.partitionPointErrors.length && this.experimentDesignForm.valid && !this.conditionCodeError) {
+        this.validatePartitionCount(this.experimentDesignForm.get('partitions').value);
+        if (!this.partitionPointErrors.length && this.experimentDesignForm.valid && !this.conditionCodeError && !this.partitionCountError) {
           const experimentDesignFormData = this.experimentDesignForm.value;
 
           experimentDesignFormData.conditions = experimentDesignFormData.conditions.map(
@@ -248,7 +265,6 @@ export class ExperimentDesignComponent implements OnInit, OnChanges, OnDestroy {
     return partition;
   }
 
-
   get condition(): FormArray {
     return this.experimentDesignForm.get('conditions') as FormArray;
   }
@@ -260,16 +276,6 @@ export class ExperimentDesignComponent implements OnInit, OnChanges, OnDestroy {
   get NewExperimentDialogEvents() {
     return NewExperimentDialogEvents;
   }
-
-  get isAssignmentWeightControlDirty() {
-    if (this.experimentDesignForm) {
-      return (this.experimentDesignForm.controls.conditions as any).controls.some(
-        control => control.controls.assignmentWeight.dirty
-      );
-    }
-    return false;
-  }
-
 
   ngOnDestroy() {
     this.allPartitionsSub.unsubscribe();

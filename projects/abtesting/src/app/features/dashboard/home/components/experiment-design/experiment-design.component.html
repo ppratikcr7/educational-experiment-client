@@ -111,13 +111,18 @@
     </mat-table>
     <span
       class="ft-14-600 validation-message"
-      *ngIf="experimentDesignForm.errors?.assignmentWightsSumError && isAssignmentWeightControlDirty"
+      *ngIf="experimentDesignForm.errors?.assignmentWeightsSumError"
       [innerHTML]="'home.new-experiment.design.assignment-weight-validation.text' | translate"
     ></span>
     <span
       class="ft-14-600 validation-message"
       *ngIf="conditionCodeError"
       [innerHTML]="conditionCodeError"
+    ></span>
+    <span
+      class="ft-14-600 validation-message"
+      *ngIf="experimentDesignForm.errors?.conditionCountError"
+      [innerHTML]="'home.new-experiment.design.condition-count-new-exp-error.text' | translate"
     ></span>
     <button
       type="button"
@@ -227,6 +232,11 @@
     class="ft-14-600 validation-message"
     *ngFor="let error of partitionPointErrors"
   >{{ error }} </span>
+  <span
+      class="ft-14-600 validation-message"
+      *ngIf="partitionCountError"
+      [innerHTML]="partitionCountError"
+    ></span>
 
   <div class="button-container">
     <button
